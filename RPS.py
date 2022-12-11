@@ -5,7 +5,12 @@ from time import sleep
 import random
 import sys
 sys.dont_write_bytecode = True
-import pyPgs
+try:
+    import py_pgs
+except ModuleNotFoundError: ## If v.py does not exist, catch the exception and print instead.
+    print('Unable to find required script modules. Please verify they exist.')
+    sleep(3)
+    quit()
 
 
 
@@ -24,7 +29,7 @@ def play():
     us_wins = 0
     ai_wins = 0
     while True:
-        pyPgs.cls()
+        py_pgs.cls()
         if play_to in (us_wins, ai_wins):
             if us_wins == play_to:
                 winner = 'User'
@@ -101,7 +106,7 @@ print()
 while True:
     try:
         play_to = int(input("> "))
-        pyPgs.cls()
+        py_pgs.cls()
         break
     except ValueError:
         print("That's not a number!")

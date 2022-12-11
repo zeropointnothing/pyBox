@@ -2,7 +2,7 @@ import sys
 from time import sleep
 sys.dont_write_bytecode = True
 try:
-    import pyPgs
+    import py_pgs
 except ModuleNotFoundError: ## If v.py does not exist, catch the exception and print instead.
     print('Unable to find required script modules. Please verify they exist.')
     sleep(3)
@@ -23,7 +23,7 @@ def view():
             for line in f.readlines(): ##Reads every line.
                 data = line.rstrip() ##Removes any \n's present.
                 user, passw = data.split(" | ") ##Removes all instances of ' | '.
-                passw = pyPgs.auto_endec(string=passw, mode='decrypt', key=mas_pwd) ##Calls the imported function auto_endec.
+                passw = py_pgs.auto_endec(string=passw, mode='decrypt', key=mas_pwd) ##Calls the imported function auto_endec.
                 print(f"Username: {user} | Password: {passw}")
             print()
     except FileNotFoundError: ##If passwords.zro does not exist, catch exception and print this instead before returning.
@@ -40,7 +40,7 @@ def add():
 
     with open('passwords.zro', 'a') as f:
         
-        pwd = pyPgs.auto_endec(string=pwd, mode='encrypt', key=mas_pwd)
+        pwd = py_pgs.auto_endec(string=pwd, mode='encrypt', key=mas_pwd)
         f.write(name + " | " + pwd + "\n")
 
 

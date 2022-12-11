@@ -6,7 +6,7 @@ import random
 from time import sleep
 sys.dont_write_bytecode = True
 try:
-    import pyPgs
+    import py_pgs
 except ModuleNotFoundError: ## If pyPgs.py does not exist, catch the exception and print instead.
     print('Unable to find required script modules. Please verify they exist.')
     sleep(3)
@@ -22,7 +22,7 @@ def gtn_game():
     sleep(1)
     print("Ready? Let's go!")
     sleep(2)
-    pyPgs.cls()
+    py_pgs.cls()
 
     while True:
         print('Choosing a number...')
@@ -36,7 +36,7 @@ def gtn_game():
                 if ans <= 0 or ans > 20:
                     print("That's not a valid number!")
                     sleep(2)
-                    pyPgs.cls()
+                    py_pgs.cls()
                     continue
                 if ans == num:
                     print('Correct!')
@@ -45,17 +45,17 @@ def gtn_game():
                 if ans < num:
                     print('Higher!')
                     sleep(2)
-                    pyPgs.cls()
+                    py_pgs.cls()
                     continue
                 if ans > num:
                     print("Lower!")
                     sleep(2)
-                    pyPgs.cls()
+                    py_pgs.cls()
                     continue
         except ValueError:
             print("That's not a number!")
             sleep(3)
-            pyPgs.cls()
+            py_pgs.cls()
             continue
 
 
