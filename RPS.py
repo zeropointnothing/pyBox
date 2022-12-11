@@ -2,8 +2,13 @@
 Rock paper scissors. That's what it is.
 """
 from time import sleep
-import os
 import random
+import sys
+sys.dont_write_bytecode = True
+import pyPgs
+
+
+
 
 chss = [
     'rock',
@@ -12,21 +17,20 @@ chss = [
 ]
 
 
-def cls():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
 def play():
+    """
+    Looped code for playing RPS.
+    """
     us_wins = 0
     ai_wins = 0
     while True:
-        cls()
-        if us_wins == play_to or ai_wins == play_to:
+        pyPgs.cls()
+        if play_to in (us_wins, ai_wins):
             if us_wins == play_to:
                 winner = 'User'
             else:
                 winner = 'AI'
 
-            
 
             print('Game Over!')
             print()
@@ -36,7 +40,6 @@ def play():
             print(f"You won {us_wins} time(s) and the AI won {ai_wins} time(s).")
             print()
             print("Play again? (y/n)")
-            
             while True:
                 dummy = input('> ')
                 if dummy.lower() == 'y':
@@ -59,39 +62,37 @@ def play():
             print('Not an answer!')
             sleep(1)
             continue
-        else:
-            print()
+        print()
 
-            if us_chs == ai_chs:
-                print("Tie!")
-                sleep(1)
-                continue
-
-            if us_chs == 'paper' and ai_chs == 'rock':
-                print('You win! [Paper beats rock!]')
-                sleep(1)
-                us_wins += 1
-            if us_chs == 'rock' and ai_chs == 'scissors':
-                print('You win! [Rock beats scissors!]')
-                sleep(1)
-                us_wins += 1
-            if us_chs == 'scissors' and ai_chs == 'paper':
-                print('You win! [Scissors beat paper!]')
-                sleep(1)
-                us_wins += 1
-            ## If statements for AI wins.
-            if ai_chs == 'paper' and us_chs == 'rock':
-                print('You Lose! [Paper beats rock!]')
-                sleep(1)
-                ai_wins += 1
-            if ai_chs == 'rock' and us_chs == 'scissors':
-                print('You Lose! [Rock beats scissors!]')
-                sleep(1)
-                ai_wins += 1
-            if ai_chs == 'scissors' and us_chs == 'paper':
-                print('You Lose! [Scissors beat paper!]')
-                sleep(1)
-                ai_wins += 1
+        if us_chs == ai_chs:
+            print("Tie!")
+            sleep(1)
+            continue
+        if us_chs == 'paper' and ai_chs == 'rock':
+            print('You win! [Paper beats rock!]')
+            sleep(1)
+            us_wins += 1
+        if us_chs == 'rock' and ai_chs == 'scissors':
+            print('You win! [Rock beats scissors!]')
+            sleep(1)
+            us_wins += 1
+        if us_chs == 'scissors' and ai_chs == 'paper':
+            print('You win! [Scissors beat paper!]')
+            sleep(1)
+            us_wins += 1
+        ## If statements for AI wins.
+        if ai_chs == 'paper' and us_chs == 'rock':
+            print('You Lose! [Paper beats rock!]')
+            sleep(1)
+            ai_wins += 1
+        if ai_chs == 'rock' and us_chs == 'scissors':
+            print('You Lose! [Rock beats scissors!]')
+            sleep(1)
+            ai_wins += 1
+        if ai_chs == 'scissors' and us_chs == 'paper':
+            print('You Lose! [Scissors beat paper!]')
+            sleep(1)
+            ai_wins += 1
 
 
 print("Welcome to Rock, Paper, Scissors!")
@@ -100,7 +101,7 @@ print()
 while True:
     try:
         play_to = int(input("> "))
-        cls()
+        pyPgs.cls()
         break
     except ValueError:
         print("That's not a number!")
@@ -117,6 +118,5 @@ while True:
     dummy = input('> ')
     if dummy.lower() != 'y':
         continue
-    else:
-        break
+    break
 play()

@@ -1,6 +1,7 @@
 """
 Contains code for many, newer projects.
 """
+import os
 
 
 # Every possible symbol that can be encrypted/decrypted:
@@ -40,3 +41,9 @@ def auto_endec(string, mode, key):
             translated.append(symbol)
 
     return ''.join(translated)
+
+def cls():
+    """
+    Clears the screen.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
