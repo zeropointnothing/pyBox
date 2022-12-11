@@ -1,3 +1,9 @@
+"""
+Password manager.
+Encrypts passwords with a KEY in order to keep them more secure.
+NOT A GOOD REPLACEMENT FOR PAYED MANAGERS.
+"""
+
 import sys
 from time import sleep
 sys.dont_write_bytecode = True
@@ -8,7 +14,8 @@ except ModuleNotFoundError: ## If v.py does not exist, catch the exception and p
     sleep(3)
     quit()
 
-mas_pwd = input("Please enter Master Password: ") ##Master password determines whether or not your passwords can be accessed.
+##Master password determines whether or not your passwords can be accessed.
+mas_pwd = input("Please enter Master Password: ")
 
 
 
@@ -18,16 +25,20 @@ def view():
     Views current passwords.
     """
     try:
-        with open('passwords.zro', 'r') as f: ##Open passwords.zro in Read mode. using with open makes it close at the end of the block.
+        ##Open passwords.zro in Read mode. using with open makes it close at the end of the block.
+        with open('passwords.zro', 'r') as file:
             print()
-            for line in f.readlines(): ##Reads every line.
+            for line in file.readlines(): ##Reads every line.
                 data = line.rstrip() ##Removes any \n's present.
                 user, passw = data.split(" | ") ##Removes all instances of ' | '.
-                passw = py_pgs.auto_endec(string=passw, mode='decrypt', key=mas_pwd) ##Calls the imported function auto_endec.
+                ##Calls the imported function auto_endec.
+                passw = py_pgs.auto_endec(string=passw, mode='decrypt', key=mas_pwd)
                 print(f"Username: {user} | Password: {passw}")
             print()
-    except FileNotFoundError: ##If passwords.zro does not exist, catch exception and print this instead before returning.
-        print("Could not find any passwords. Please double check that it exists, and has the proper name. (passwords.zro)")
+    ##If passwords.zro does not exist, catch exception and print this instead before returning.
+    except FileNotFoundError:
+        print("Could not find passwords file.")
+        print("Please double check that it exists, and has the proper name. (passwords.zro)")
         print()
 
 
@@ -38,10 +49,10 @@ def add():
     name = input('Account name: ')
     pwd = input('Password: ')
 
-    with open('passwords.zro', 'a') as f:
-        
+    with open('passwords.zro', 'a') as file:
+
         pwd = py_pgs.auto_endec(string=pwd, mode='encrypt', key=mas_pwd)
-        f.write(name + " | " + pwd + "\n")
+        file.write(name + " | " + pwd + "\n")
 
 
 while True:
