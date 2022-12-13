@@ -7,7 +7,7 @@ import sys
 sys.dont_write_bytecode = True
 try:
     import py_pgs
-except ModuleNotFoundError: ## If v.py does not exist, catch the exception and print instead.
+except ModuleNotFoundError: ## If py_pgs.py does not exist, catch the exception and print instead.
     print('Unable to find required script modules. Please verify they exist.')
     sleep(3)
     quit()
