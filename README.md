@@ -7,3 +7,5 @@ Similar to BatchBox, but in Python instead.
 2. Guess the Number Game
 3. Rock Paper Scissors
 4. Password Manager
+5. Password Manager
+6. Hangman (UNFINISHED)
