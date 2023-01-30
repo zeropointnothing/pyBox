@@ -1,3 +1,6 @@
+## For users trying to use the GUI version of the pass_gen:
+https://github.com/ZeroPointNothing/pyBox/wiki/Things-For-Installs
+
 # pyBox
 Similar to BatchBox, but in Python instead.
 
