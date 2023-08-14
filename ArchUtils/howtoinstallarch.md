@@ -124,6 +124,9 @@ mkdir /mnt/efi
 # Replace PART with the EFI System type partition. Most likely sda1.
 
 mount /dev/PART /mnt/efi
+
+# Else, mount efi partition.
+# mount --mkdir /dev/PART /mnt/boot
 ```
 
 ## STEP FOUR : :  CORE LINUX SETUP
