@@ -94,6 +94,10 @@ mkfs.ext4 /dev/PART
 # Format the 'swap' partition (Linux swap)
 
 mkswap /dev/PART
+
+# *Format the EFI partition.
+
+mkds.fat -F 32 /dev/PART 
 ```
 
 - Finally, enable the swap partition.
