@@ -72,6 +72,8 @@ cfdisk
 
 # Now do the same for your 'swap' partition, but make this one at least 4GB's. More specific info on how big this should be is here: https://itsfoss.com/swap-size/ (Do note that this is a general recommendation. If you have a good amount of RAM, SWAP may never be used. So make it 4-2GB at least.)
 
+# ALSO MAKE EFI PARTITION!! Make it with more than 512MB!
+
 # Almost done! First, verify that in the 'Type' tab, the new parition you made for Linux is of the type "Linux filesystem". If it isn't, set it to that. Next, navigate to your new swap partition. Then, select the '[   Type   ]' button on the bottom. This should open up a menu. In this menu, select Linux swap'
 
 # Finally, select the '[   Write   ]' button and type in yes to confirm.
