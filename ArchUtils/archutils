@@ -1,0 +1,323 @@
+#!/usr/bin/env python
+
+# ArchUtils
+# 
+# A cti (ctl thing idk?) with multiple commands that hopes to make the certain commands easier to use.
+#
+# Made by ZeroPointNothing on his ArchUSB
+
+import argparse
+import os
+import subprocess
+import sys
+import re
+import atexit
+import shutil
+from time import sleep
+from colorama import Fore, Style
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-S", "--service", help="Disable or enable a service: 0/1 [MODE: Start/Stop instead.]", choices=['0', '1'])
+parser.add_argument("-R", "--reboot", help="Reboot the computer into the Firmware settings. (UEFI Settings)", action="store_true")
+parser.add_argument("-SR", "--sddm", help="Stop the SDDM service and restart into tty1 mode.", action="store_true")
+parser.add_argument("-G", "--github", help="Enable a GitHub ssh key.", action="store_true")
+parser.add_argument("-m", "--mode", help="For commands that support it, switch to an alternate mode.", action="store_true")
+args = parser.parse_args()
+
+class Logger:
+    def __init__(self, name: str | None = None) -> None:
+        if name:
+            self.name = name
+        else:
+            self.name = os.path.basename(__file__)
+
+    def regis_exit_handler(self, custom_message: str | None = None):
+        """
+        Register the exit handler that will reset coloring from the Logger. This will ensure that the user wont have a colored terminal after archutils stops. 
+        """
+        
+        message = f"{self.name}:EXIT:{custom_message}" if custom_message else ""
+
+        atexit.register(lambda: print(Style.RESET_ALL + message))
+
+        # print(Style.RESET_ALL)
+        # if custom_message:
+        #     print(custom_message)
+
+    def info(self, text: str) -> None:
+        """
+        White text for general information.
+        """
+        if not text:
+            return
+
+        print(Fore.LIGHTWHITE_EX + f"{self.name}: " + text + Fore.RESET)
+
+
+    def warn(self, text: str) -> None:
+        """
+        Yellow text for less serious, but still noteworthy problems.
+        """
+        if not text:
+            return
+
+        print(Fore.YELLOW + f"{self.name}:WARNING: " + text + Fore.RESET)
+
+    def error(self, text: str) -> None:
+        """
+        Red text for critical bugs, usually followed by the program halting or the process restarting.
+        """
+        if not text:
+            return
+
+        print(Fore.RED + f"{self.name}:ERROR: " + text + Fore.RESET)
+
+
+log = Logger()
+log.regis_exit_handler()
+
+def check_sudo() -> None:
+    """
+    Verify that the userid of the user that started archutils is sudo (0).
+
+    If it isn't restart the script with sudo.
+    """
+    log.info("Checking for elevated permissions...")
+    
+    if os.geteuid() != 0:
+        log.warn("was not run in sudo! Restarting... (You might be asked for your password.)")
+
+
+        # Request sudo permissions
+        args = ['sudo', sys.executable] + sys.argv
+        os.execvp('sudo', args)
+        sys.exit()
+    else:
+        log.info("now in sudo. proceeding.")
+        print()
+
+def run(command: str, useos = False) -> str | None:
+    """
+    Run a command through subprocess.run and get the output of it, if any.    
+    """
+
+    output = None
+
+    if not useos:
+        output = subprocess.run(command, shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+    else:
+        os.system(command)
+
+    return output if output != "" else None
+
+if args.service:
+    check_sudo()
+
+    try:
+        args.service = int(args.service)
+        type = ['disable', 'enable'][args.service]
+    except ValueError:
+        parser.error(f"Unexpected argument {args.service}.")
+
+    val = input(f"Service to {type}:\n> ")
+
+    if val == "bluetooth":
+        if args.service == 1:
+            print("Starting Bluetooth. You may be asked for your password.")
+            os.system("sudo systemctl start bluetooth")
+            print("Started Bluetooth.")
+        elif args.service == 0:
+            print("Stopping Bluetooth. You may be asked for your password.")
+            os.system("sudo systemctl stop bluetooth")
+            print("Stopped Bluetooth.")
+        else:
+            parser.error("Unexpected argument.")
+
+    elif val == "custom":
+        if args.mode:
+            type = ['stop', 'start'][args.service]
+
+        log.info(f"archutils will attempt to {type} this process. NOTE: You should check that this process exists, and isn't already {type}d! (systemctl status SERVICE)")
+        try:
+            svs = input("> ")
+        except KeyboardInterrupt:
+            print()
+            sys.exit(0)
+
+        log.info(f"Now attempting to {type} {svs}... You may be asked for your password.")
+        
+        output = subprocess.run(f"systemctl {type} {svs}", shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+        
+        if re.search("Failed to", output):
+            log.error(f"Failed to modify {svs}'s status. systemctl responded with: {output}")
+        else:
+            log.info(f"Modified {svs}'s status successfully.")
+    sys.exit()
+elif args.sddm:
+    check_sudo()
+
+    log.warn("This will disable SDDM's auto start feature for your DE! In order to leave the terminal and return to your DE, you will have to renable sddm.service"\
+             " using \"systemctl enable sddm\".")
+
+    usr = input('Shutdown or restart? [S/r]\n> ')
+
+    if usr.lower() == "s":
+        print()
+        log.info("Shutting down and disabling SDDM.")
+    elif usr.lower() == "r":
+        print()
+        log.info("Restarting and disabling SDDM.")
+    else:
+        raise ValueError("Invalid response.")
+
+    output = subprocess.run("systemctl disable sddm", shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+    if re.search("Failed to stop", output):
+        log.error(f"Failed to stop SDDM. systemctl responded with: {output}")
+        print()
+        log.info("Aborting.")
+    else:
+        log.info("Successfully shut SDDM down. Goodbye!")
+        sleep(2)
+
+        if usr.lower() == "s":
+            os.system("sudo shutdown now")
+        elif usr.lower() == "r":
+            os.system("sudo reboot")
+    sys.exit()
+
+elif args.reboot:
+    check_sudo()
+
+    try:
+        log.info("Your computer will reboot in 3...")
+        sleep(1)
+        log.info("2... (Press CTRL+C to quit.)")
+        sleep(1)
+        log.info("1...")
+        sleep(1)
+    except KeyboardInterrupt:
+        print()
+        log.error("Aborting due to user input.")
+        sys.exit()
+
+    log.info("Rebooting...")
+    sleep(1)
+
+    output = subprocess.run("systemctl reboot --firmware-setup", shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+    sys.exit()
+elif args.github:
+    if args.mode:
+        run("ssh-add -l -E sha256", useos=True)
+        sys.exit()
+
+    keyloc = input("Enter the location of your GitHub auth file. > ")
+
+    log.info("Attempting to add GitHub auth key...")
+
+    output = run(f"eval \"$(ssh-agent -s)\" && ssh-add {keyloc}", useos=True)
+
+    log.info(output)
+
+    sys.exit()
+
+    
+
+
+
+if __name__ == "__main__":
+    # ArchUtils was run without any arguments.
+
+    PATH = os.environ['PATH']
+    USER  = os.getlogin()
+    CDIR = os.path.dirname(os.path.abspath(__file__))
+
+    log.info(f"location: {CDIR}")
+
+    if CDIR == f"/home/{USER}/cpath":
+        log.info("horray! ArchUtils is already set up.")
+        sys.exit()
+    else:
+        log.error("ArchUtils was not set up! Entering setup mode...")
+
+        try:
+            _ = input(f"ArchUtils will place itself in the following folder and add that folder to your PATH"\
+                      f"env variable if you proceed [/home/{USER}/cpath]. (Y/n) > ")
+
+            if _.lower() == "n":
+                sys.exit()
+
+        except KeyboardInterrupt:
+            print()
+            log.error("Aborted due to user input.")
+            sys.exit()
+
+        check_sudo()
+        print()
+
+        if os.path.exists(f"/home/{USER}/cpath"):
+            log.info("Found cpath (CustomPath) folder! Skipping creation step.")
+        else:
+            log.info("Creating cpath (CustomPath) folder...")
+
+            os.mkdir(f"/home/{USER}/cpath")
+
+        if os.path.exists(f"/home/{USER}/.bashrc"):
+            log.info("Found .bashrc file! Attempting to add CustomPath to it...")
+            
+            with open(f"/home/{USER}/.bashrc", "r") as f:
+                data = f.read()
+                print(data)
+
+            if "# archutils: Add CustomPath to PATH.\nexport PATH=\"~/cpath:$PATH\"" in data:
+                log.info("CustomPath is already added! Skipping PATH step.")
+            else:
+                with open(f"/home/{USER}/.bashrc", "a") as f:
+                    f.write("# archutils: Add CustomPath to PATH.\nexport PATH=\"~/cpath:$PATH\"")
+
+
+        else:
+            log.warn("Unable to locate .bashrc file! ArchUtils will not be added to PATH and must be added manually.")
+
+
+        if CDIR != f"/home/{USER}/cpath":
+            # log.warn("ArchUtils will stop all running Python processes before removing"\
+            #          "itself from the original location. If you don't want this, or want to do it yourself, stop the ArchUtils now. You have 5 seconds. (CTRL+C)")
+
+            log.warn("ArchUtils will now copy itself into CustomPath and delete the original (this one). You have five seconds to do this manually. (CTRL+C)")
+
+            try:
+                sleep(5)
+            except KeyboardInterrupt:
+                print()
+                log.error("Aborted due to user input.")
+                sys.exit()
+
+            log.info("Copying ArchUtils into CustomPath...")
+
+            shutil.copy(__file__, f"/home/{USER}/cpath/archutils")
+
+            log.info("Attempting to make ArchUtils executable...")
+
+            output = subprocess.run(f"chmod a+x /home/{USER}/cpath/archutils", shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+
+            print(output) if output != "" else ...
+
+            log.info("Self Destructing. Goodbye!!")
+
+            sleep(3)
+
+            # Delete self.
+            os.remove(sys.argv[0])
+        else:
+            log.info("ArchUtils is already in cpath? Nothing left to do.")
+
+        sys.exit()
+
+
+# README!!!
+#
+# To make ArchUtils executable, run chmod a+x /location/to/archutils and run it without any arguments.
+#
+# It will enter setup mode and create path environments for you, if possible.
+#
+
