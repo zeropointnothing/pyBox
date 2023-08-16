@@ -273,7 +273,7 @@ WantedBy=multi-user.target"""
         )
 
     print(
-        "Done! To use MoniPY, place monpy.service in /lib/systemd/system/ and MoniPY.py in /usr/bin."
+        "Done! To use MoniPY, place monipy.service in /lib/systemd/system/ and monipy.py in /usr/bin."
     )
 
 elif __name__ == "__main__":
