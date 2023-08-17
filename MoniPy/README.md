@@ -4,10 +4,19 @@ A python logger script that will allow you to track what processes are starting 
 
 To use it, first, make sure you have the following.
 
-- A python installation located at `/usr/bin/python3`
-- One of these locations on your hard drive. - `/home/USERNAME/Desktop` (This is bound to change.)
+- Windows or Linux (tested on Arch) - [Platforms: linux, win32]
+- A python installation located at `/usr/bin/python3` (Only required for systemd)
+- One of these locations on your hard drive. - `/home/USERNAME/Desktop`, `?:/Users/USERNAME/OneDrive/Desktop`, `?:/Users/USERNAME/Desktop` (This is bound to change.)
 
 Next, run the program. This can be done in two different ways.
+
+## For Windows users!
+
+If you are running MoniPY on windows, you will have to make sure psutil is installed. On linux, this probably isn't required.
+
+```
+pip install psutil
+```
 
 ## Manually
 
