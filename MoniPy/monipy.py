@@ -1,5 +1,5 @@
 """
-MoniPy v1.0
+MoniPy v1.1
 
 Monitor and log different activities on your computer!
 
@@ -47,16 +47,28 @@ class Logger:
         if not args.setup:
             if PLATFORM == "linux":
                 self.path = f"/home/{self.user}/Desktop/monipylog.txt"
+            elif PLATFORM == "win32":
+                desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'OneDrive/Desktop') 
+
+                if not os.path.exists(desktop):
+                    desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') 
+                    if not os.path.exists(desktop):
+                        desktop = "ruh/roh/raggy/"
+
+                self.path = os.path.join(desktop, "monipylog.txt")
             else:
                 raise UnknownPlatformError(
                     f"{PLATFORM} is not a known platform. Unable to determine Log file location."
                 )
 
             try:
+                print(self.path)
+
                 with open(self.path, "a") as f:
                     f.write(f"\n\n==== MoniPY - - BEGIN LOG : {time.asctime()} ====\n")
-            except FileNotFoundError:
-                print("!CRITICAL ERROR! - MoniPY was not able to determine the user and cannot log to file! Aborting!")
+            except FileNotFoundError as e:
+                print("!CRITICAL ERROR! - MoniPY was not able to determine the user and or their Desktop and cannot log to file! Aborting!")
+                raise e
                 sys.exit(1)
 
             self.info(f"Running on Platform: {PLATFORM}")
@@ -158,7 +170,15 @@ def exc(exc_type, exc_value, exc_traceback):
             f.write("\n\n==== MoniPY - - END LOG ====")
         sys.exit()
 
-    with open(f"/home/{log.user}/Desktop/monipyerror.txt", "w") as FILE:
+    if PLATFORM == "linux":
+        path = f"/home/{log.user}/Desktop/monipyerror.txt"
+    elif PLATFORM == "win32":
+        desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') 
+
+        path = f"{desktop}/monipyerror.txt"
+    
+
+    with open(path, "w") as FILE:
         log.error(
             "MoniPY ran into an error! Check the logs, or error.txt on your desktop!"
         )
@@ -220,6 +240,15 @@ def main():
                 proc.append(_)
 
         for _ in proc:
+            if _["pid"] == "0000":
+                # dupe
+                log.info(f"UP - {_['name']}")
+                try:
+                    proc.remove(_)
+                except ValueError:
+                    # It wasn't in the proc list, so we don't need to do anything here.
+                    pass
+
             if _ not in prc and not contains(_["name"]):
                 # Process is inside proc, but is not inside prc. It was probably stopped. Throw a DEADPROCESS event.
 
