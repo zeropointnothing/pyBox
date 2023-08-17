@@ -22,7 +22,6 @@ PLATFORM = sys.platform
 # Enables logging of proccesses that tend to start up and down often.
 VERBOSE = False
 
-print(f"Platform: {PLATFORM}")
 proc = []
 parser = argparse.ArgumentParser()
 parser.add_argument("-S", "--setup", action="store_true")
@@ -68,7 +67,6 @@ class Logger:
                     f.write(f"\n\n==== MoniPY - - BEGIN LOG : {time.asctime()} ====\n")
             except FileNotFoundError as e:
                 print("!CRITICAL ERROR! - MoniPY was not able to determine the user and or their Desktop and cannot log to file! Aborting!")
-                raise e
                 sys.exit(1)
 
             self.info(f"Running on Platform: {PLATFORM}")
@@ -176,6 +174,10 @@ def exc(exc_type, exc_value, exc_traceback):
         desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop') 
 
         path = f"{desktop}/monipyerror.txt"
+    else:
+        raise UnknownPlatformError(
+            f"{PLATFORM} is not a known platform. Unable to determine Log file location."
+        )
     
 
     with open(path, "w") as FILE:
@@ -233,6 +235,8 @@ def main():
                     # It wasn't in the proc list, so we don't need to do anything here.
                     pass
 
+                continue
+
             if _ not in proc and not contains(_["name"]):
                 # Process is not already in proc list. It's probably new. Throw a NEWPROCESS event.
 
@@ -248,6 +252,8 @@ def main():
                 except ValueError:
                     # It wasn't in the proc list, so we don't need to do anything here.
                     pass
+
+                continue
 
             if _ not in prc and not contains(_["name"]):
                 # Process is inside proc, but is not inside prc. It was probably stopped. Throw a DEADPROCESS event.
