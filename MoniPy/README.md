@@ -75,3 +75,34 @@ Here are some tips.
 # Curses Mode
 
 As of MoniPY v2.0, it now has a built in TUI mode built on Curses. This can be opened by running MoniPY with the -C/--curses flag. Please note that this is early in development, and new features are yet to come.
+
+## Commands
+
+To enter command mode, press :. To exit, either erase your command (with the :) completely, or press ESC.
+
+
+### :quit
+This simply quits MoniPY
+
+### :sort \<MODE>
+Change how MoniPY sorts running processes. By default, this is `pid`.
+
+Accepted values:
+
+- pid
+- name
+- cpu
+- mem
+
+### :kill \<PID>
+Kill a process by its PID.
+
+### :akill \<PNAME>
+Kill a group of processes by their name.
+
+## Note
+
+Currently, the CPU reading on processes is not accurate, and should not be taken too seriously.
+
+
+
