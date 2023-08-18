@@ -143,7 +143,7 @@ def contains(text: str) -> bool:
     Check if text contains anything in the defined search value in this function.
     """
     if not VERBOSE:
-        search = ["kworker", "baloo_file_extractor", "sleep", "cpuUsage.sh"]
+        search = ["kworker", "kioslave5", "baloo_file_extractor", "sleep", "cpuUsage.sh"]
     else:
         search = "imadummyheeheeRANDOMDumMYTeXT231321s"
 
