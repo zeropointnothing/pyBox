@@ -71,3 +71,7 @@ Here are some tips.
 - MoniPY refreshes every 2 seconds.
 - MoniPY counts every process by their PID (Process ID), so you may see duplicates.
 
+
+# Curses Mode
+
+As of MoniPY v2.0, it now has a built in TUI mode built on Curses. This can be opened by running MoniPY with the -C/--curses flag. Please note that this is early in development, and new features are yet to come.
