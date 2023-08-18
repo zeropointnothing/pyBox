@@ -149,8 +149,9 @@ def verify_proc(proc: psutil.Process, extra: bool = False) -> dict:
             cmd = proc.cmdline()
             mem = proc.memory_percent()
             mem2 = proc.memory_info()[0]
+
     except psutil.NoSuchProcess:
-        return {"name": f"0000{time.time()}", "pid": 0.0001}
+        return {"name": f"0000{time.time()}", "pid": 0.0001, "cpu": 0, "cmd": 0, "mem": 0, "mem2": 0}
 
     if extra:
         return {"name": name, "pid": pid, "cpu": cpu, "cmd": cmd, "mem": mem, "mem2": mem2} #type: ignore
@@ -412,18 +413,29 @@ class window:
                 # Slice our list into a chunk so we can handle only what we can show.
                 for i in range(len(dproc), self.height - 3):
                     try:
-                        string = f"{proc[i]['pid']} - - {proc[i]['name']}"
-                    except:
+                        string = f"{proc[i]['pid']} - - {(proc[i]['name'] + '            ')[:12]}"
+                    except KeyError:
                         continue
-                    if proc[i]["cpu"] or proc[i]["cpu"] >= 0:
-                        string = string + f" [CPU: {proc[i]['cpu']}"
+
+                    try:
+                        if proc[i].get("cpu", "ERRCPU") or proc[i].get("cpu", "ERRCPU") != "ERRCPU":
+                            string = string + f" [CPU: {proc[i]['cpu']}%"
+                        else:
+                            string = string + " [CPU: ???"
+                    except KeyError:
+                            string = string + " [CPU: ???]"
+
                     if proc[i].get("mem", "NOMEM") != "NOMEM" and proc[i].get("mem2", "NOMEM") != "NOMEM":
                         string = string + f" MEM: {round(proc[i]['mem'], 1)}% ({proc[i]['mem2'] // 1000000}MB)]"
-                    if len(proc[i]["cmd"]) > 0:
-                        try:
-                            string = string + f" {proc[i]['cmd'][0]}"
-                        except IndexError:
-                            pass
+
+                    try:
+                        if len(proc[i]["cmd"]) > 0:
+                            try:
+                                string = string + f" {proc[i]['cmd'][0]}"
+                            except IndexError:
+                                pass
+                    except KeyError:
+                        pass
                     string = string[: self.width - 1]
                     dproc.append(string)
 
