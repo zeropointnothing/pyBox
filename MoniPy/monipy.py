@@ -1,5 +1,5 @@
 """
-MoniPy v2.0
+MoniPy v2.1
 
 Monitor and log different activities on your computer!
 
@@ -10,6 +10,7 @@ Created by ZeroPointNothing.
 import sys
 import argparse
 import signal
+import subprocess
 import psutil
 import traceback
 import os
@@ -37,6 +38,20 @@ class UnknownPlatformError(BaseException):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
+
+def run(command: str, useos = False) -> str | None:
+    """
+    Run a command through subprocess.run and get the output of it, if any.    
+    """
+
+    output = None
+
+    if not useos:
+        output = subprocess.run(command, shell=True, capture_output=True, check=False).stderr.decode().strip("\n")
+    else:
+        os.system(command)
+
+    return output if output != "" else None
 
 class Logger:
     def __init__(self, user: str | None = None) -> None:
@@ -133,7 +148,7 @@ def verify_proc(proc: psutil.Process, extra: bool = False) -> dict:
             cpu = proc.cpu_percent()
             cmd = proc.cmdline()
     except psutil.NoSuchProcess:
-        return {"name": f"0000{time.time()}", "pid": "0000"}
+        return {"name": f"0000{time.time()}", "pid": 0.0001}
 
     if extra:
         return {"name": name, "pid": pid, "cpu": cpu, "cmd": cmd} #type: ignore
@@ -235,7 +250,7 @@ def main():
         for _ in prc:
             # print(_, proc)
 
-            if _["pid"] == "0000":
+            if _["pid"] == 0.0001:
                 # Process was killed before its name could be retreived. Indicated by the 0000 pid, as that is not a valid pid.
                 # The process is assigned a template name to differentiate it from all other 0000 processes. (0000EPOCH.TIME)
                 # This process was killed, but we have no way to retrieve its name. Remove it from the proc list and show an UNKNOWNPROCESS event.
@@ -255,7 +270,7 @@ def main():
                 proc.append(_)
 
         for _ in proc:
-            if _["pid"] == "0000":
+            if _["pid"] == 0.0001:
                 # dupe
                 log.info(f"UP - {_['name']}")
                 try:
@@ -373,6 +388,10 @@ class window:
 
             for _ in proc:
                 _["pid"] = int(_["pid"])
+
+                if not VERBOSE:
+                    if contains(_["name"]):
+                        proc.remove(_)
 
             # If there are not enough processes for the current view to show, shift it back down.
             if len(proc) < self.scroll:
@@ -558,6 +577,7 @@ class window:
                         cmd = "".join(keys).removeprefix(":").split(" ")
 
                         failed = False
+                        ignore = False
 
                         maincmd = None
                         subcommand = None
@@ -574,6 +594,19 @@ class window:
                                 keys = []
                                 cursor_x = 0
                                 self.running = False
+                            elif maincmd == "top":
+                                keys = []
+                                cursor_x = 0
+
+                                self.scroll = 0
+                                ignore = True
+                            elif maincmd == "bottom":
+                                keys = []
+                                cursor_x = 0
+
+                                self.scroll = self.prcs - self.height
+                                ignore = True
+
 
                         try:
                             subcommand = cmd[1]
@@ -587,10 +620,38 @@ class window:
                                 self.sortby = subcommand
                                 keys = []
                                 cursor_x = 0
+                            elif maincmd == "akill":
+                                output = run(f"killall {subcommand}")
+
+                                if output and "no process found" in output:
+                                    keys = ["NO PROCESS FOUND"]
+
+                                    self.cancmd = False
+                                    cursor_x = 0
+
+                                    cmdtextcolor = REDBLACK
+                                else:
+                                    keys = []
+                                    cursor_x = 0
+                            elif maincmd == "kill":
+                                output = run(f"kill {subcommand}")
+                                # print(output)
+                                if output and ("No such process" in output or "arguments must be" in output):
+                                    keys = ["NO PROCESS FOUND"]
+
+
+                                    self.cancmd = False
+                                    cursor_x = 0
+
+                                    cmdtextcolor = REDBLACK
+                                else:
+                                    keys = []
+                                    cursor_x = 0
+                                    
                             else:
                                 failed = True
 
-                        if failed:
+                        if failed and not ignore:
                             self.cancmd = False
 
                             cmdtextcolor = REDBLACK
@@ -638,7 +699,7 @@ class window:
 
                 self.placetext(0, height - 1, "".join(keys))
             elif k == ord("q"):
-                running = False
+                self.running = False
 
                 k = 0
 
@@ -676,5 +737,3 @@ class window:
 if args.curses:
     if cancurses:
         curses.wrapper(window) #type: ignore
-
-
