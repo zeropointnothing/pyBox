@@ -1,5 +1,5 @@
 """
-MoniPy v2.1
+MoniPy v2.2
 
 Monitor and log different activities on your computer!
 
@@ -147,11 +147,13 @@ def verify_proc(proc: psutil.Process, extra: bool = False) -> dict:
         if extra:
             cpu = proc.cpu_percent()
             cmd = proc.cmdline()
+            mem = proc.memory_percent()
+            mem2 = proc.memory_info()[0]
     except psutil.NoSuchProcess:
         return {"name": f"0000{time.time()}", "pid": 0.0001}
 
     if extra:
-        return {"name": name, "pid": pid, "cpu": cpu, "cmd": cmd} #type: ignore
+        return {"name": name, "pid": pid, "cpu": cpu, "cmd": cmd, "mem": mem, "mem2": mem2} #type: ignore
     else:
         return {"name": name, "pid": pid}
 
@@ -397,7 +399,7 @@ class window:
             if len(proc) < self.scroll:
                 self.scroll = len(proc)
 
-            proc = sorted(proc, key=lambda l: l[self.sortby], reverse=True if self.sortby == "cpu" else False)
+            proc = sorted(proc, key=lambda l: l[self.sortby], reverse=True if self.sortby in ["cpu", "mem"] else False)
 
             self.prcs = len(proc) - 1
 
@@ -413,14 +415,16 @@ class window:
                         string = f"{proc[i]['pid']} - - {proc[i]['name']}"
                     except:
                         continue
-                    if proc[i]["cpu"] or proc[i]["cpu"] >= 0.0:
-                        string = string + f" [{proc[i]['cpu']}]"
+                    if proc[i]["cpu"] or proc[i]["cpu"] >= 0:
+                        string = string + f" [CPU: {proc[i]['cpu']}"
+                    if proc[i].get("mem", "NOMEM") != "NOMEM" and proc[i].get("mem2", "NOMEM") != "NOMEM":
+                        string = string + f" MEM: {round(proc[i]['mem'], 1)}% ({proc[i]['mem2'] // 1000000}MB)]"
                     if len(proc[i]["cmd"]) > 0:
                         try:
                             string = string + f" {proc[i]['cmd'][0]}"
                         except IndexError:
                             pass
-                    string = string[: self.width - len(string) - 1]
+                    string = string[: self.width - 1]
                     dproc.append(string)
 
 
@@ -616,7 +620,7 @@ class window:
                         # commands that require subcommand.
 
                         if not failed:
-                            if maincmd == "sort" and subcommand in ["cpu", "pid", "name"]:
+                            if maincmd == "sort" and subcommand in ["cpu", "mem", "pid", "name"]:
                                 self.sortby = subcommand
                                 keys = []
                                 cursor_x = 0
