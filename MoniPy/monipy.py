@@ -1,5 +1,5 @@
 """
-MoniPy v1.1
+MoniPy v2.0
 
 Monitor and log different activities on your computer!
 
@@ -14,6 +14,11 @@ import psutil
 import traceback
 import os
 import time
+cancurses = True
+try:
+    import curses
+except ModuleNotFoundError:
+    cancurses = False
 from time import sleep
 
 # Get the currently running platform. This will determine the location of the user's Desktop.
@@ -25,6 +30,7 @@ VERBOSE = False
 proc = []
 parser = argparse.ArgumentParser()
 parser.add_argument("-S", "--setup", action="store_true")
+parser.add_argument("-C", "--curses", action="store_true", help="Enter the curses GUI mode for a process manager.")
 
 
 class UnknownPlatformError(BaseException):
@@ -115,7 +121,7 @@ class Logger:
             f.write(f"\n[{time.strftime('%H:%M:%S')}] {self.name}:ERROR: " + text)
 
 
-def verify_proc(proc: psutil.Process) -> dict:
+def verify_proc(proc: psutil.Process, extra: bool = False) -> dict:
     """
     Verify a process exists and ignore it if it does not.
     """
@@ -123,19 +129,25 @@ def verify_proc(proc: psutil.Process) -> dict:
     try:
         name = proc.name()
         pid = proc.pid
+        if extra:
+            cpu = proc.cpu_percent()
+            cmd = proc.cmdline()
     except psutil.NoSuchProcess:
         return {"name": f"0000{time.time()}", "pid": "0000"}
 
-    return {"name": name, "pid": pid}
+    if extra:
+        return {"name": name, "pid": pid, "cpu": cpu, "cmd": cmd} #type: ignore
+    else:
+        return {"name": name, "pid": pid}
 
 
-def get_proc() -> list[dict]:
+def get_proc(extra: bool = False) -> list[dict]:
     """
     Returns a list of processes.
     """
     processes = [_ for _ in psutil.process_iter()]
 
-    return [verify_proc(_) for _ in processes]
+    return [verify_proc(_, extra) for _ in processes]
 
 
 def contains(text: str) -> bool:
@@ -201,7 +213,6 @@ args = parser.parse_args()
 # for proc in test:
 #     print(f"{proc.name()} ({proc.pid}) : {proc.status()}")
 
-log = Logger()
 sys.excepthook = exc
 
 
@@ -312,11 +323,358 @@ WantedBy=multi-user.target"""
     )
 
 elif __name__ == "__main__":
-    # Attach the ex function to the TERMINATE signal systemd throws when systemctl stop is run.
-    signal.signal(signal.SIGTERM, ex)
+    if not args.curses:
+    
+        log = Logger()
 
-    # Get the initial processes at MoniPY's startup as to not clog the log file.
-    proc = get_proc()
 
-    # Run.
-    main()
+        # Attach the ex function to the TERMINATE signal systemd throws when systemctl stop is run.
+        signal.signal(signal.SIGTERM, ex)
+
+        # Get the initial processes at MoniPY's startup as to not clog the log file.
+        proc = get_proc()
+
+        # Run.
+        main()
+###
+### CURSES - - BEGIN
+###
+
+
+class window:
+    def __init__(self, curseswinow) -> None:
+        """
+        Curses Mode main class.
+        """
+        self.stdscr = curseswinow
+        self.running = True
+
+        self.lastgtime = time.time()
+        self.prcs = 0
+        self.scroll = 5
+        self.titleovr = False
+        self.cancmd = True
+        self.sortby = "pid"
+
+        self.height, self.width = self.stdscr.getmaxyx()
+        self.title = "MoniPY - CURSES VIEW"
+        self.main()
+
+    def gatherproc(self, nowait: bool = False, nofrefesh: bool = False):
+        """
+        Gather the processes using get_proc and then sort them so they will fit in the current viewing window.
+        """
+        offset = self.scroll
+
+        if time.time() - self.lastgtime > 1.3 or nowait:
+            # It's been 2 seconds since the last gather.
+
+            proc = get_proc(True)
+
+            for _ in proc:
+                _["pid"] = int(_["pid"])
+
+            # If there are not enough processes for the current view to show, shift it back down.
+            if len(proc) < self.scroll:
+                self.scroll = len(proc)
+
+            proc = sorted(proc, key=lambda l: l[self.sortby], reverse=True if self.sortby == "cpu" else False)
+
+            self.prcs = len(proc) - 1
+
+            proc = proc[offset:]
+
+            # Only try to display processes if we can actually display them.
+            if self.height - 3 != 0:
+                dproc = []
+
+                # Slice our list into a chunk so we can handle only what we can show.
+                for i in range(len(dproc), self.height - 3):
+                    try:
+                        string = f"{proc[i]['pid']} - - {proc[i]['name']}"
+                    except:
+                        continue
+                    if proc[i]["cpu"] or proc[i]["cpu"] >= 0.0:
+                        string = string + f" [{proc[i]['cpu']}]"
+                    if len(proc[i]["cmd"]) > 0:
+                        try:
+                            string = string + f" {proc[i]['cmd'][0]}"
+                        except IndexError:
+                            pass
+                    string = string[: self.width - len(string) - 1]
+                    dproc.append(string)
+
+
+
+                dproc.reverse()
+
+                self.stdscr.clear()
+                for i, _ in enumerate(dproc):
+                    self.placetext(
+                        0,
+                        (self.height - 3 - i),
+                        " " * self.width,
+                        color=curses.COLOR_BLACK,
+                    )
+                    self.placetext(0, (self.height - 3 - i), dproc[i])
+
+                if not self.titleovr:
+                    self.title = str(f"{time.asctime()} -- {self.prcs} PROCESSES")
+
+                self.lastgtime = time.time()
+        else:
+            pass
+
+    def placetext(
+        self, x: int, y: int, text: str, mode: int | list[int] | None = None, color=None
+    ):
+        """
+        Place text. This must be called every refresh/clear for the text to stay.
+        """
+        stdscr = self.stdscr
+
+        # titlebartext = "PLACEHOLDER TEXT"
+        # start_x_title = int((width // 2) - (len(titlebartext) // 2))
+
+        # start_y = int((height // 2))
+
+        if color:
+            stdscr.attron(color)
+
+        if mode:
+            if type(mode) == list:
+                for _ in mode:
+                    stdscr.attron(_)
+            else:
+                stdscr.attron(mode)
+
+        stdscr.addstr(y, x, text)
+
+        if color:
+            stdscr.attroff(color)
+
+        if mode:
+            if type(mode) == list:
+                for _ in mode:
+                    stdscr.attroff(_)
+            else:
+                stdscr.attroff(mode)
+
+    def update(self, cursor_x):
+        """
+        Clera the screen, move the curser to cursor_x and refresh.
+        """
+        # Use a virtual screen instead of a real one to hide the real cursor.
+        self.stdscr.noutrefresh()
+        # stdscr.move(height -1 , cursor_x)
+        curses.setsyx(self.height - 1, cursor_x)
+
+        curses.doupdate()
+
+    def main(self):
+        """
+        Main logic.
+
+        This is automatically run when the window class is created.
+        """
+        stdscr: curses._CursesWindow = self.stdscr
+
+        stdscr.refresh()
+
+        # Colors.
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+        curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_RED)
+
+        CYANBLACK = curses.color_pair(1)
+        REDBLACK = curses.color_pair(2)
+        BLACKWHITE = curses.color_pair(3)
+        WHITERED = curses.color_pair(4)
+
+        BOLD = curses.A_BOLD
+        ITALIC = curses.A_ITALIC
+
+        stdscr.nodelay(True)
+
+        k = 0
+        cursor_x = 0
+        keys = []
+        cmdtextcolor = CYANBLACK
+
+        # k is equal to the last key pressed. ord(q) will return the UNICODE number for q.
+        while self.running:
+            # stdscr.clear()
+            height, width = self.height, self.width
+
+            tmph, tmpw = stdscr.getmaxyx()
+
+            # Check if the height of the window changed. If it did, clear the screen so we can update it.
+            # Then, update the height/width values of the window class.
+            if tmph != height or tmpw != width:
+                stdscr.clear()
+                self.height = tmph
+                self.width = tmpw
+
+                height, width = self.height, self.width
+
+            # Title text:
+            # title_text = str(height - 3)
+
+            # Command Mode.
+
+            if len(keys) > 0 and self.cancmd:
+                # Take control of the title bar.
+                self.titleovr = True
+                self.title = "COMMAND MODE"
+
+                # No keys are being pressed.
+                if k == -1:
+                    pass
+                # The escape key was pressed. Exit command mode.
+                elif k == 27:
+                    self.titleovr = False
+                    keys = []
+                    cursor_x = 0
+                    k = 0
+
+                    # Clear the screen to show the removed text.
+                    stdscr.clear()
+
+                    # Reset the process list without waiting so it wont be blank.
+                    self.gatherproc(True)
+                # User pressed backspace. Delete a key.
+                elif k == curses.KEY_BACKSPACE:
+                    # User deleted the initial : key, thus exiting command mode.
+                    if len(keys) == 1:
+                        self.titleovr = False
+                    keys.pop()
+                    k = 0
+                    cursor_x -= 1
+                    self.update(cursor_x)
+                elif k == 10:
+                    if self.cancmd:
+                        cmd = "".join(keys).removeprefix(":").split(" ")
+
+                        failed = False
+
+                        maincmd = None
+                        subcommand = None
+                        
+                        try:
+                            maincmd = cmd[0]
+                        except IndexError:
+                            failed = True
+
+                        # commands that do not require subcommand.
+
+                        if not failed:
+                            if maincmd == "quit":
+                                keys = []
+                                cursor_x = 0
+                                self.running = False
+
+                        try:
+                            subcommand = cmd[1]
+                        except IndexError:
+                            failed = True
+
+                        # commands that require subcommand.
+
+                        if not failed:
+                            if maincmd == "sort" and subcommand in ["cpu", "pid", "name"]:
+                                self.sortby = subcommand
+                                keys = []
+                                cursor_x = 0
+                            else:
+                                failed = True
+
+                        if failed:
+                            self.cancmd = False
+
+                            cmdtextcolor = REDBLACK
+                            keys = ["INVALID COMMAND"]
+                            k = 0
+                        
+                        self.titleovr = False
+
+
+
+
+                elif (k != 0) and len(keys) != self.width - 1:
+                    keys.append(chr(k))
+                    k = 0
+                    cursor_x += 1
+            elif (len(keys) > 0 and not self.cancmd) and k == 10:
+                # User failed a command. Pressing enter should reset the command line.
+                keys = []
+                self.cancmd = True
+                cmdtextcolor = CYANBLACK
+                cursor_x = 0
+
+
+            elif k == curses.KEY_DOWN:
+                self.titleovr = True
+                if not self.scroll > self.prcs - self.height:
+                    self.scroll += 1
+                    self.title = str(self.scroll)
+                else:
+                    self.title = "MAX SCROLL"
+                self.titleovr = False
+            elif k == curses.KEY_UP:
+                self.titleovr = True
+                if self.scroll > 0:
+                    self.scroll -= 1
+                    self.title = str(self.scroll)
+                else:
+                    self.title = "MIN SCROLL"
+                self.titleovr = False
+
+            elif k == ord(":"):
+                keys.append(":")
+                cursor_x += 1
+                k = 0
+
+                self.placetext(0, height - 1, "".join(keys))
+            elif k == ord("q"):
+                running = False
+
+                k = 0
+
+
+
+            # Command bar.
+            # Force the text to update by drawing over the old text first, then putting the new text onto it.
+            self.placetext(0, height - 1, " " * (width - 1), color=curses.COLOR_BLACK)
+            self.placetext(0, height - 1, "".join(keys), color=cmdtextcolor)
+
+            title_text = self.title
+
+            if self.width < len(title_text)+2:
+                self.running = False
+                break
+
+            self.gatherproc()
+
+            # Get title position.
+            title_y = 0
+            title_x = (width // 2) - (len(title_text) // 2) - (len(title_text) % 2)
+
+            # Generate title background.
+            self.placetext(0, 0, " " * width, color=BLACKWHITE)
+            self.placetext(title_x, title_y, title_text, [BOLD, ITALIC], BLACKWHITE)
+            # self.placetext(0, 0, "hello, world!", curses.A_BOLD, curses.color_pair(1))
+
+            self.placetext(0, height - 2, " " * width, color=WHITERED)
+            self.placetext(0, height - 2, "THIS IS A STATUS BAR", color=WHITERED)
+
+            self.update(cursor_x)
+
+            k = stdscr.getch()
+
+if args.curses:
+    if cancurses:
+        curses.wrapper(window) #type: ignore
+
+
