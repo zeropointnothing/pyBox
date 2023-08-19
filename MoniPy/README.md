@@ -18,6 +18,8 @@ If you are running MoniPY on windows, you will have to make sure psutil is insta
 pip install psutil
 ```
 
+Also note that the TUI mode of MoniPY requires you to install the `windows-curses` module. However, I do **not** fully support Windows, and it will most likely run poorly. You have been warned!
+
 ## Manually
 
 While MoniPY will still log to your desktop, it will also display the logs to the console, so you can run it directly.
