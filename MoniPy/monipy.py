@@ -146,7 +146,10 @@ def verify_proc(proc: psutil.Process, extra: bool = False) -> dict:
         pid = proc.pid
         if extra:
             cpu = proc.cpu_percent()
-            cmd = proc.cmdline()
+            try:
+                cmd = proc.cmdline()
+            except psutil.AccessDenied:
+                cmd = "??AD??"
             mem = proc.memory_percent()
             mem2 = proc.memory_info()[0]
 
@@ -753,3 +756,5 @@ class window:
 if args.curses:
     if cancurses:
         curses.wrapper(window) #type: ignore
+    else:
+        print("Could not start MoniPY in TUI mode. The curses module could not be found.")
