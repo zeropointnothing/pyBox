@@ -1,5 +1,5 @@
 """
-MoniPy v2.2
+MoniPy v2.3
 
 Monitor and log different activities on your computer!
 
@@ -14,6 +14,7 @@ import subprocess
 import psutil
 import traceback
 import os
+import re
 import time
 cancurses = True
 try:
@@ -182,7 +183,7 @@ def contains(text: str) -> bool:
 
     if type(search) == list:
         for _ in search:
-            if _ in text:
+            if re.search(_, text):
                 return True
         return False
     elif type(search) == str:
@@ -376,6 +377,7 @@ class window:
         self.titleovr = False
         self.cancmd = True
         self.sortby = "pid"
+        self.filter = "code"
 
         self.height, self.width = self.stdscr.getmaxyx()
         self.title = "MoniPY - CURSES VIEW"
@@ -392,12 +394,19 @@ class window:
 
             proc = get_proc(True)
 
-            for _ in proc:
+            # Iterate through a copy of proc instead of proc itself.
+            for _ in proc[:]:
                 _["pid"] = int(_["pid"])
 
                 if not VERBOSE:
                     if contains(_["name"]):
                         proc.remove(_)
+
+            if self.filter:
+                for _ in proc[:]:
+                    if not re.search(self.filter, _["name"]):
+                        proc.remove(_)
+            
 
             # If there are not enough processes for the current view to show, shift it back down.
             if len(proc) < self.scroll:
@@ -405,7 +414,7 @@ class window:
 
             proc = sorted(proc, key=lambda l: l[self.sortby], reverse=True if self.sortby in ["cpu", "mem"] else False)
 
-            self.prcs = len(proc) - 1
+            self.prcs = len(proc)
 
             proc = proc[offset:]
 
@@ -415,34 +424,37 @@ class window:
 
                 # Slice our list into a chunk so we can handle only what we can show.
                 for i in range(len(dproc), self.height - 3):
+                    empty = False
                     try:
                         string = f"{proc[i]['pid']} - - {(proc[i]['name'] + '            ')[:12]}"
                     except KeyError:
                         continue
+                    except IndexError:
+                        empty = True
+                        string = ""
 
-                    try:
-                        if proc[i].get("cpu", "ERRCPU") or proc[i].get("cpu", "ERRCPU") != "ERRCPU":
-                            string = string + f" [CPU: {proc[i]['cpu']}%"
-                        else:
-                            string = string + " [CPU: ???"
-                    except KeyError:
-                            string = string + " [CPU: ???]"
+                    if not empty:
+                        try:
+                            if proc[i].get("cpu", "ERRCPU") or proc[i].get("cpu", "ERRCPU") != "ERRCPU":
+                                string = string + f" [CPU: {proc[i]['cpu']}%"
+                            else:
+                                string = string + " [CPU: ???"
+                        except KeyError:
+                                string = string + " [CPU: ???]"
 
-                    if proc[i].get("mem", "NOMEM") != "NOMEM" and proc[i].get("mem2", "NOMEM") != "NOMEM":
-                        string = string + f" MEM: {round(proc[i]['mem'], 1)}% ({proc[i]['mem2'] // 1000000}MB)]"
+                        if proc[i].get("mem", "NOMEM") != "NOMEM" and proc[i].get("mem2", "NOMEM") != "NOMEM":
+                            string = string + f" MEM: {round(proc[i]['mem'], 1)}% ({proc[i]['mem2'] // 1000000}MB)]"
 
-                    try:
-                        if len(proc[i]["cmd"]) > 0:
-                            try:
-                                string = string + f" {proc[i]['cmd'][0]}"
-                            except IndexError:
-                                pass
-                    except KeyError:
-                        pass
-                    string = string[: self.width - 1]
+                        try:
+                            if len(proc[i]["cmd"]) > 0:
+                                try:
+                                    string = string + f" {proc[i]['cmd'][0]}"
+                                except IndexError:
+                                    pass
+                        except KeyError:
+                            pass
+                        string = string[: self.width - 1]
                     dproc.append(string)
-
-
 
                 dproc.reverse()
 
@@ -458,6 +470,7 @@ class window:
 
                 if not self.titleovr:
                     self.title = str(f"{time.asctime()} -- {self.prcs} PROCESSES")
+                    self.title = self.title + " -+- FILTER MODE" if self.filter else self.title
 
                 self.lastgtime = time.time()
         else:
@@ -666,7 +679,14 @@ class window:
                                 else:
                                     keys = []
                                     cursor_x = 0
-                                    
+                            elif maincmd == "filter":
+                                self.filter = subcommand
+
+                                keys = []
+                                cursor_x = 0
+
+                                self.scroll = 0
+
                             else:
                                 failed = True
 
@@ -710,6 +730,8 @@ class window:
                 else:
                     self.title = "MIN SCROLL"
                 self.titleovr = False
+            elif k == 27 and self.filter:
+                self.filter = None
 
             elif k == ord(":"):
                 keys.append(":")
