@@ -373,11 +373,11 @@ class window:
 
         self.lastgtime = time.time()
         self.prcs = 0
-        self.scroll = 5
+        self.scroll = 0
         self.titleovr = False
         self.cancmd = True
         self.sortby = "pid"
-        self.filter = "code"
+        self.filter = None
 
         self.height, self.width = self.stdscr.getmaxyx()
         self.title = "MoniPY - CURSES VIEW"
