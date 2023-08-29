@@ -104,7 +104,4 @@ Kill a group of processes by their name.
 
 ## Note
 
-Currently, the CPU reading on processes is not accurate, and should not be taken too seriously.
-
-Though it is still a fairly decent guide to knowing what processes are using the most processing power. 
-
+CPU usage may not be entirely accurate, but it is close. (at least from my testing)
