@@ -87,51 +87,6 @@ Make le graph
 
 # # print(y)
 
-class Graph:
-    """
-    Background class. Don't touch.
-    """
-    def __init__(self, height: int, width: int) -> None:
-        self.grp = []
-        oy = round((height-1)/2) + 1
-        ox = round((width-1)/2) + 1
-
-        self.origin = (ox, oy)
-
-        # output = ""
-
-        if width%2 == 0 or height%2 == 0:
-            raise ValueError("Width and height must be odd!")
-
-        self.height = height
-        self.width = width
-
-        for i in range(self.height):
-            # Make a blank graph.
-            self.grp.append({"line": i, "data": []})
-            for _ in range(self.width):
-                self.grp[i]["data"].append("- ")
-
-        # for _ in self.grp:
-        #     output += f"{''.join(_['data'])}\n"
-        # print(output)
-
-    def add_point(self, x: int, y: int, text: str):
-        """
-        Add a point, calculating its position based on the origin.
-        """
-        orix, oriy = self.origin
-
-        try:
-            if self.grp[oriy-1-y]["data"][orix-1+x] != "- ":
-                text = "# "
-
-            self.grp[oriy-1-y]["data"][orix-1+x] = text
-        except IndexError:
-            # This point can't be shown on the graph.
-            return
-
-
 class GraphiPy:
     """
     grap
@@ -139,7 +94,63 @@ class GraphiPy:
     i can make the graphs lets go.
     """
     def __init__(self, height: int, width: int) -> None:
-        self.graph = Graph(height, width)
+        self.graph = self._Graph(height, width)
+
+    class UndefinedSlopeError(BaseException):
+        """
+        AKA Tried to divide by zero like a stoopid error.
+        """
+        def __init__(self, *args: object) -> None:
+            super().__init__(*args)
+
+    class _Graph:
+        """
+        Background class. Don't touch.
+        """
+        def __init__(self, height: int, width: int) -> None:
+            self.grp = []
+            oy = round((height-1)/2) + 1
+            ox = round((width-1)/2) + 1
+
+            # Get the true origin of our graph by halving both the height and width.
+
+            self.origin = (ox, oy)
+
+            # output = ""
+
+            # Ensure that both the height and width are odd so that we can have a central origin.
+            if width%2 == 0 or height%2 == 0:
+                raise ValueError("Width and height must be odd!")
+
+            self.height = height
+            self.width = width
+
+            for i in range(self.height):
+                # Make a blank graph.
+                self.grp.append({"line": i, "data": []})
+                for _ in range(self.width):
+                    self.grp[i]["data"].append("- ")
+
+            # for _ in self.grp:
+            #     output += f"{''.join(_['data'])}\n"
+            # print(output)
+
+        def add_point(self, x: int, y: int, text: str):
+            """
+            Add a point, calculating its position based on the origin.
+            """
+            orix, oriy = self.origin
+
+            try:
+                # See if we already have something here. If so, use the crossed points symbol.
+                if self.grp[oriy-1-y]["data"][orix-1+x] != "- ":
+                    text = "# "
+
+                # Get the position by adding/subtracting the origin coords by the specified user coords.
+                self.grp[oriy-1-y]["data"][orix-1+x] = text
+            except IndexError:
+                # This point can't be shown on the graph.
+                return
 
     def plot_point(self, x, y):
         """
@@ -149,23 +160,37 @@ class GraphiPy:
 
         return self.graph.grp
 
-    def plot_line(self, slope: str, yintercept: int):
+    def plot_slopeinter(self, slope: str, yintercept: int, exp: int = 1):
         """
         Create a (basic) graph and/or plot a line using y=mx+b.
+
+        Exp is an optional value. Even values will always be positive.
         """
+        # Split the graph in half so we can calculate negatives as well.
         tmpwidth = int((self.graph.width-1)/2)
         points = []
-        slope = float(eval(slope))
-        yintercept = int(yintercept)
+        # force the args to be the right type.
+        try:
+            slope = float(int(slope.split("/")[0]) / int(slope.split("/")[1]))
+        except IndexError:
+            # There was no fraction (division operator) provided. This is probably an integer.
+            slope = int(slope)
+        except ZeroDivisionError as exc:
+            raise self.UndefinedSlopeError(f"Cannot graph an undefined slope! ({slope})") from exc
 
+        yintercept = int(yintercept)
+        exp = int(exp)
+
+        # Use y=mx+b to calculate all our (rounded) points.
         for x in range(-tmpwidth, tmpwidth+1):
-            y = slope * x + yintercept
+            y = ((slope * x) ** exp) + yintercept
             # Make sure we are only trying to plot numbers that we can even see.
             if round(y) == y and y < self.graph.height/2:
                 points.append({"y": round(y), "x": x})
 
         print(points)
 
+        # Plot all of our points.
         for point in points:
             self.graph.add_point(point["x"], point["y"], "X ")
 
@@ -179,9 +204,12 @@ grapher = GraphiPy(21, 21)
 while True:
     uslope = input("Enter slope (m): ")
     uinter = input("Enter y-intercept (b): ")
+    uexp = input("exp (defaults to 1): ")
+
+    uexp = 1 if not uexp else uexp
 
     print(grapher.graph.origin)
-    result = grapher.plot_line(uslope, uinter)
+    result = grapher.plot_slopeinter(uslope, uinter, uexp)
 
     output = ""
     for _ in result:
