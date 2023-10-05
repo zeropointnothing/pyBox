@@ -57,7 +57,7 @@ Make le graph
 #                     line["data"].append("- ")
 
 #         graph[0]["data"][0] = "* "
-        
+
 #         return graph
 
 
@@ -105,16 +105,16 @@ class GraphiPy:
 
     class _Graph:
         """
-        Background class. Don't touch.
+        Internal class.
         """
         def __init__(self, height: int, width: int) -> None:
             self.grp = []
-            oy = round((height-1)/2) + 1
-            ox = round((width-1)/2) + 1
+            oriy = round((height-1)/2) + 1
+            orix = round((width-1)/2) + 1
 
             # Get the true origin of our graph by halving both the height and width.
 
-            self.origin = (ox, oy)
+            self.origin = (orix, oriy)
 
             # output = ""
 
@@ -135,7 +135,7 @@ class GraphiPy:
             #     output += f"{''.join(_['data'])}\n"
             # print(output)
 
-        def add_point(self, x: int, y: int, text: str):
+        def add_point(self, xcoord: int, ycoord: int, text: str):
             """
             Add a point, calculating its position based on the origin.
             """
@@ -143,20 +143,20 @@ class GraphiPy:
 
             try:
                 # See if we already have something here. If so, use the crossed points symbol.
-                if self.grp[oriy-1-y]["data"][orix-1+x] != "- ":
+                if self.grp[oriy-1-ycoord]["data"][orix-1+xcoord] != "- ":
                     text = "# "
 
-                # Get the position by adding/subtracting the origin coords by the specified user coords.
-                self.grp[oriy-1-y]["data"][orix-1+x] = text
+                # Get the position by adding/subtracting the origin coords by the specified coords.
+                self.grp[oriy-1-ycoord]["data"][orix-1+xcoord] = text
             except IndexError:
                 # This point can't be shown on the graph.
                 return
 
-    def plot_point(self, x, y):
+    def plot_point(self, xcoord, ycoord):
         """
         Create a (basic) graph and/or add a single point to it.
         """
-        self.graph.add_point(x, y, "X ")
+        self.graph.add_point(xcoord, ycoord, "X ")
 
         return self.graph.grp
 
@@ -182,11 +182,11 @@ class GraphiPy:
         exp = int(exp)
 
         # Use y=mx+b to calculate all our (rounded) points.
-        for x in range(-tmpwidth, tmpwidth+1):
-            y = ((slope * x) ** exp) + yintercept
+        for xpoint in range(-tmpwidth, tmpwidth+1):
+            ypoint = ((slope * xpoint) ** exp) + yintercept
             # Make sure we are only trying to plot numbers that we can even see.
-            if round(y) == y and y < self.graph.height/2:
-                points.append({"y": round(y), "x": x})
+            if round(ypoint) == ypoint and ypoint < self.graph.height/2:
+                points.append({"y": round(ypoint), "x": xpoint})
 
         print(points)
 
@@ -211,10 +211,10 @@ while True:
     print(grapher.graph.origin)
     result = grapher.plot_slopeinter(uslope, uinter, uexp)
 
-    output = ""
+    OUTPUT = ""
     for _ in result:
-        output += f"{''.join(_['data'])}\n"
-    print(output)
+        OUTPUT += f"{''.join(_['data'])}\n"
+    print(OUTPUT)
 
 # m = 2/1
 # b = 0
