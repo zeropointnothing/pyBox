@@ -1,6 +1,8 @@
 """
 Make le graph
 """
+import colorama
+import random
 
 # class pyGraph:
 #     def __init__(self, h, w) -> None:
@@ -160,7 +162,7 @@ class GraphiPy:
 
         return self.graph.grp
 
-    def plot_slopeinter(self, slope: str, yintercept: int, exp: int = 1):
+    def plot_slopeinter(self, slope: str, yintercept: int, color: colorama.Fore = colorama.Fore.WHITE, exp: int = 1):
         """
         Create a (basic) graph and/or plot a line using y=mx+b.
 
@@ -192,14 +194,59 @@ class GraphiPy:
 
         # Plot all of our points.
         for point in points:
-            self.graph.add_point(point["x"], point["y"], "X ")
+            if color:
+                self.graph.add_point(point["x"], point["y"], f"{color}X{colorama.Fore.RESET} ")
+            else:
+                self.graph.add_point(point["x"], point["y"], "X ")
 
         # Add the origin.
         self.graph.add_point(0, 0, "* ")
 
         return self.graph.grp
 
-grapher = GraphiPy(21, 21)
+    def plot_exposlope(self, slope, yintercept, color: colorama.Fore = colorama.Fore.WHITE):
+        """
+        Creates a (basic) graph using f(x) = a^x AKA Exponential Slope.
+
+        NOTE: All points are rounded so they appear on the graph. The graph is not 100% accurate.
+        """
+        # Split the graph in half so we can calculate negatives as well.
+        tmpwidth = int((self.graph.width-1)/2)
+        points = []
+        # force the args to be the right type.
+        try:
+            slope = float(int(slope.split("/")[0]) / int(slope.split("/")[1]))
+        except IndexError:
+            # There was no fraction (division operator) provided. This is probably an integer.
+            slope = int(slope)
+        except ZeroDivisionError as exc:
+            raise self.UndefinedSlopeError(f"Cannot graph an undefined slope! ({slope})") from exc
+
+        yintercept = int(yintercept)
+
+
+        # Use y=mx+b to calculate all our (rounded) points.
+        for xpoint in range(-tmpwidth, tmpwidth+1):
+            ypoint = slope ** xpoint + yintercept
+            # Due to the nature of exponential graphs, simply round the points to get the closest we can.
+            if ypoint < self.graph.height/2:
+                points.append({"y": round(ypoint), "x": xpoint})
+
+        print("ALL POINTS ARE ROUNDED. THIS IS NOT 100% ACCURATE")
+        print(points)
+
+        # Plot all of our points.
+        for point in points:
+            if color:
+                self.graph.add_point(point["x"], point["y"], f"{color}X{colorama.Fore.RESET} ")
+            else:
+                self.graph.add_point(point["x"], point["y"], "X ")
+        # Add the origin.
+        self.graph.add_point(0, 0, "* ")
+
+        return self.graph.grp
+
+grapher = GraphiPy(91, 41)
 
 while True:
     uslope = input("Enter slope (m): ")
@@ -209,7 +256,10 @@ while True:
     uexp = 1 if not uexp else uexp
 
     print(grapher.graph.origin)
-    result = grapher.plot_slopeinter(uslope, uinter, uexp)
+    # result = grapher.plot_slopeinter(uslope, uinter, uexp)
+    clr = random.choice([colorama.Fore.BLUE, colorama.Fore.GREEN, colorama.Fore.RED, colorama.Fore.LIGHTMAGENTA_EX])
+
+    result = grapher.plot_slopeinter(uslope, uinter, clr, uexp)
 
     OUTPUT = ""
     for _ in result:
